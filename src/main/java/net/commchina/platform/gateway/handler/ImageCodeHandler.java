@@ -17,10 +17,10 @@
 package net.commchina.platform.gateway.handler;
 
 import com.google.code.kaptcha.Producer;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -43,11 +43,20 @@ import java.util.concurrent.TimeUnit;
  * 验证码生成逻辑处理类
  */
 @Slf4j
+@RefreshScope
 @Component
-@AllArgsConstructor
 public class ImageCodeHandler implements HandlerFunction<ServerResponse> {
     private final Producer producer;
     private final StringRedisTemplate redisTemplate;
+
+    @Value("${auth.core.imagecode.timeout:60}")
+    private Long timeOut;
+
+
+    public ImageCodeHandler(final Producer producer, final StringRedisTemplate redisTemplate) {
+        this.producer = producer;
+        this.redisTemplate = redisTemplate;
+    }
 
     @Override
     public Mono<ServerResponse> handle(ServerRequest serverRequest)
@@ -58,7 +67,7 @@ public class ImageCodeHandler implements HandlerFunction<ServerResponse> {
 
         //保存验证码信息
         String randomStr = serverRequest.queryParam("randomStr").get();
-        redisTemplate.opsForValue().set("auth:core:imagecode:" + randomStr, text, 60, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set("auth:core:imagecode:" + randomStr, text, timeOut, TimeUnit.SECONDS);
 
         log.info("text code:{}", text);
         // 转换流信息写出

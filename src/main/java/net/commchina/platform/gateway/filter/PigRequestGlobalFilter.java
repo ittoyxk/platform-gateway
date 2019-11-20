@@ -57,23 +57,16 @@ public class PigRequestGlobalFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain)
     {
         // 1. 清洗请求头中from 参数
-        ServerHttpRequest request = exchange.getRequest().mutate()
-                .headers(httpHeaders -> httpHeaders.remove("from"))
-                .build();
+        ServerHttpRequest request = exchange.getRequest().mutate().headers(httpHeaders -> httpHeaders.remove("from")).build();
 
         // 2. 重写StripPrefix
         addOriginalRequestUrl(exchange, request.getURI());
         String rawPath = request.getURI().getRawPath();
-        String newPath = "/" + Arrays.stream(StringUtils.tokenizeToStringArray(rawPath, "/"))
-                .skip(1L).collect(Collectors.joining("/"));
-        ServerHttpRequest newRequest = request.mutate()
-                .path(newPath)
-                .build();
+        String newPath = "/" + Arrays.stream(StringUtils.tokenizeToStringArray(rawPath, "/")).skip(1L).collect(Collectors.joining("/"));
+        ServerHttpRequest newRequest = request.mutate().path(newPath).build();
         exchange.getAttributes().put(GATEWAY_REQUEST_URL_ATTR, newRequest.getURI());
 
-        return chain.filter(exchange.mutate()
-                .request(newRequest.mutate()
-                        .build()).build());
+        return chain.filter(exchange.mutate().request(newRequest.mutate().build()).build());
     }
 
     @Override

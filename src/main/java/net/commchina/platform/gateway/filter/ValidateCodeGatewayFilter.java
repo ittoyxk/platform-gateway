@@ -23,20 +23,14 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.commchina.platform.gateway.exception.ValidateCodeException;
-import net.commchina.platform.gateway.response.APIResponse;
+import net.commchina.platform.gateway.response.ResponseEntity;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
-
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * @author lengleng
@@ -72,9 +66,10 @@ public class ValidateCodeGatewayFilter extends AbstractGatewayFilterFactory {
                 checkCode(request);
             } catch (Exception e) {
                 ServerHttpResponse response = exchange.getResponse();
-                response.setStatusCode(HttpStatus.PRECONDITION_REQUIRED);
                 try {
-                    return response.writeWith(Mono.just(response.bufferFactory().wrap(objectMapper.writeValueAsBytes(APIResponse.builder().msg(e.getMessage()).code(-1).build()))));
+                    response.setStatusCode(HttpStatus.PRECONDITION_REQUIRED);
+                    String message = e.getMessage();
+                    return ResponseEntity.getResponse(exchange, message, objectMapper);
                 } catch (JsonProcessingException e1) {
                     log.error("对象输出异常", e1);
                 }
@@ -83,7 +78,6 @@ public class ValidateCodeGatewayFilter extends AbstractGatewayFilterFactory {
             return chain.filter(exchange);
         };
     }
-
 
     /**
      * 检查code
@@ -106,24 +100,24 @@ public class ValidateCodeGatewayFilter extends AbstractGatewayFilterFactory {
 
         String key = "auth:core:imagecode:" + randomStr;
         if (!redisTemplate.hasKey(key)) {
-            throw new ValidateCodeException("验证码不合法");
+            throw new ValidateCodeException("验证码已失效,请重新获取");
         }
 
         Object codeObj = redisTemplate.opsForValue().get(key);
 
         if (codeObj == null) {
-            throw new ValidateCodeException("验证码不合法");
+            throw new ValidateCodeException("验证码已失效,请重新获取");
         }
 
         String saveCode = codeObj.toString();
         if (StrUtil.isBlank(saveCode)) {
             redisTemplate.delete(key);
-            throw new ValidateCodeException("验证码不合法");
+            throw new ValidateCodeException("验证码已失效,请重新获取");
         }
 
         if (!StrUtil.equals(saveCode, code)) {
             redisTemplate.delete(key);
-            throw new ValidateCodeException("验证码不合法");
+            throw new ValidateCodeException("验证码不正确");
         }
 
         redisTemplate.delete(key);
