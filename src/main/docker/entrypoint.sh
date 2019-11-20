@@ -10,7 +10,7 @@ if [ $? -eq 0 ];then
     echo "gid: $DGID already exists in container, continue ..."
 else
     echo "gid: $DGID does not exist, creating group ..."
-    addgroup -g $DGID lingban
+    addgroup -g $DGID shield
 fi
 
 getent passwd $DUID
