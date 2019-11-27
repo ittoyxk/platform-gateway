@@ -1,5 +1,6 @@
 package net.commchina.platform.gateway.response;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.client.reactive.ClientHttpResponse;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserter;
@@ -35,7 +37,17 @@ import java.nio.charset.StandardCharsets;
 public class ResponseEntity {
 
 
-    public static Mono<Void> getResponse(ServerWebExchange exchange,  String message, ObjectMapper objectMapper) throws JsonProcessingException
+    public static Mono<Void> errorResult(ServerHttpResponse response, HttpStatus status, String msg)
+    {
+        response.setStatusCode(status);
+        response.getHeaders().add(HttpHeaders.CONTENT_TYPE, "application/json;charset=UTF-8");
+        APIResponse<Object> build = APIResponse.builder().code(-1).msg(msg).build();
+        byte[] bytes = JSON.toJSONBytes(build);
+        DataBuffer wrap = response.bufferFactory().wrap(bytes);
+        return response.writeWith(Flux.just(wrap));
+    }
+
+    public static Mono<Void> getResponse(ServerWebExchange exchange, String message, ObjectMapper objectMapper) throws JsonProcessingException
     {
         return new ServerHttpResponseDecorator(exchange.getResponse()) {
             @Override

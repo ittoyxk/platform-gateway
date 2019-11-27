@@ -1,8 +1,6 @@
 package net.commchina.platform.gateway.filter;
 
 import cn.hutool.core.util.StrUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import net.commchina.platform.gateway.remote.AuthUserRemote;
 import net.commchina.platform.gateway.remote.http.resp.UserInfo;
@@ -26,45 +24,40 @@ import java.util.UUID;
  */
 @Slf4j
 @Component
-public class AuthSignatureFilter implements GlobalFilter, Ordered {
+public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
 
     @Autowired
     private AuthUserRemote authUserRemote;
-    @Autowired
-    private ObjectMapper objectMapper;
+
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain)
     {
-        String path = exchange.getRequest().getURI().getPath();
+        ServerHttpRequest request = exchange.getRequest();
+        ServerHttpResponse response = exchange.getResponse();
 
+        String path = request.getURI().getPath();
+
+        //获取token
         if (StrUtil.containsAnyIgnoreCase(path, "/oauth/token")) {
             return chain.filter(exchange);
-        } else if (StrUtil.containsAnyIgnoreCase(path, "/job/")) {
-            /*ServerHttpResponse response = exchange.getResponse();
-            response.setStatusCode(HttpStatus.UNAUTHORIZED);
-            try {
-                return ResponseEntity.getResponse(exchange, "没有权限访问", objectMapper);
-            } catch (JsonProcessingException e) {
-                log.error("对象输出异常", e);
-            }*/
-        } else if (StrUtil.containsAnyIgnoreCase(path, "/api/")) {
-            String authorization = exchange.getRequest().getHeaders().getFirst("Authorization");
+        }
+        //后端服务RPC使用,不暴露外部
+        else if (StrUtil.containsAnyIgnoreCase(path, "/job/")) {
+            return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "没有权限访问");
+        }
+        //外部前端接口统一认证
+        else if (StrUtil.containsAnyIgnoreCase(path, "/api/")) {
+            String authorization = request.getHeaders().getFirst("Authorization");
             log.debug("authorization:{}", authorization);
             if (authorization == null || authorization.isEmpty()) {
-                ServerHttpResponse response = exchange.getResponse();
-                response.setStatusCode(HttpStatus.UNAUTHORIZED);
-                try {
-                    return ResponseEntity.getResponse(exchange, "用户未登陆", objectMapper);
-                } catch (JsonProcessingException e) {
-                    log.error("对象输出异常", e);
-                }
+                return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "用户未登陆");
             } else {
                 APIResponse<UserInfo> token = authUserRemote.getTokenPage(authorization);
                 if (token.getCode() == 1) {
                     UserInfo data = token.getData();
 
-                    ServerHttpRequest newRequest = exchange.getRequest().mutate()
+                    ServerHttpRequest newRequest = request.mutate()
                             .header("userName", data.getUserName())
                             .header("companyId", Long.toString(data.getCompanyId()))
                             .header("enterpriseId", Long.toString(data.getEnterpriseId()))
@@ -74,18 +67,13 @@ public class AuthSignatureFilter implements GlobalFilter, Ordered {
 
                     return chain.filter(exchange.mutate().request(newRequest.mutate().build()).build());
                 } else {
-                    ServerHttpResponse response = exchange.getResponse();
-                    response.setStatusCode(HttpStatus.UNAUTHORIZED);
-                    try {
-                        return ResponseEntity.getResponse(exchange, "没有获取到有效认证", objectMapper);
-                    } catch (JsonProcessingException e) {
-                        log.error("对象输出异常", e);
-                    }
+                    return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "没有获取到有效认证");
                 }
             }
         }
         return chain.filter(exchange);
     }
+
 
     @Override
     public int getOrder()

@@ -17,8 +17,6 @@
 package net.commchina.platform.gateway.filter;
 
 import cn.hutool.core.util.StrUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +27,6 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 
 /**
@@ -41,7 +38,7 @@ import org.springframework.stereotype.Component;
 @Component
 @AllArgsConstructor
 public class ValidateCodeGatewayFilter extends AbstractGatewayFilterFactory {
-    private final ObjectMapper objectMapper;
+
     private final StringRedisTemplate redisTemplate;
 
     @Override
@@ -65,16 +62,9 @@ public class ValidateCodeGatewayFilter extends AbstractGatewayFilterFactory {
                 //校验验证码
                 checkCode(request);
             } catch (Exception e) {
-                ServerHttpResponse response = exchange.getResponse();
-                try {
-                    response.setStatusCode(HttpStatus.PRECONDITION_REQUIRED);
-                    String message = e.getMessage();
-                    return ResponseEntity.getResponse(exchange, message, objectMapper);
-                } catch (JsonProcessingException e1) {
-                    log.error("对象输出异常", e1);
-                }
+                String message = e.getMessage();
+                return ResponseEntity.errorResult(exchange.getResponse(), HttpStatus.PRECONDITION_REQUIRED, message);
             }
-
             return chain.filter(exchange);
         };
     }
