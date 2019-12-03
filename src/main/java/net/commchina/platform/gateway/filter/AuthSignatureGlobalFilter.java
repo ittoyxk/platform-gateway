@@ -66,7 +66,7 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
                         String bodyStr = IOUtils.toString(token.body().asInputStream(), "UTF-8");
                         APIResponse apiResponse = JSONObject.toJavaObject(JSONObject.parseObject(bodyStr), APIResponse.class);
                         if (apiResponse.getCode() == 1) {
-                            UserInfo data = (UserInfo) apiResponse.getData();
+                            UserInfo data = JSONObject.toJavaObject((JSONObject)apiResponse.getData(),UserInfo.class);
 
                             ServerHttpRequest newRequest = request.mutate()
                                     .header("userName", data.getUserName())
