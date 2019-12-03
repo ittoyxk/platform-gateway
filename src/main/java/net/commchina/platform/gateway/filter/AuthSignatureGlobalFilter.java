@@ -1,11 +1,14 @@
 package net.commchina.platform.gateway.filter;
 
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSONObject;
+import feign.Response;
 import lombok.extern.slf4j.Slf4j;
 import net.commchina.platform.gateway.remote.AuthUserRemote;
 import net.commchina.platform.gateway.remote.http.resp.UserInfo;
 import net.commchina.platform.gateway.response.APIResponse;
 import net.commchina.platform.gateway.response.ResponseEntity;
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -17,6 +20,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 
 /**
@@ -53,20 +58,32 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
             if (authorization == null || authorization.isEmpty()) {
                 return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "用户未登陆");
             } else {
-                APIResponse<UserInfo> token = authUserRemote.getTokenPage(authorization);
-                if (token.getCode() == 1) {
-                    UserInfo data = token.getData();
+                Response token = authUserRemote.getTokenPage(authorization);
+                log.info("status:{}", token.status());
+                try {
+                    if (token.status() == HttpStatus.OK.value()) {
 
-                    ServerHttpRequest newRequest = request.mutate()
-                            .header("userName", data.getUserName())
-                            .header("companyId", Long.toString(data.getCompanyId()))
-                            .header("enterpriseId", Long.toString(data.getEnterpriseId()))
-                            .header("userId", Long.toString(data.getUserId()))
-                            .header("requestId", UUID.randomUUID().toString())
-                            .build();
+                        String bodyStr = IOUtils.toString(token.body().asInputStream(), "UTF-8");
+                        APIResponse apiResponse = JSONObject.toJavaObject(JSONObject.parseObject(bodyStr), APIResponse.class);
+                        if (apiResponse.getCode() == 1) {
+                            UserInfo data = (UserInfo) apiResponse.getData();
 
-                    return chain.filter(exchange.mutate().request(newRequest.mutate().build()).build());
-                } else {
+                            ServerHttpRequest newRequest = request.mutate()
+                                    .header("userName", data.getUserName())
+                                    .header("companyId", Long.toString(data.getCompanyId()))
+                                    .header("enterpriseId", Long.toString(data.getEnterpriseId()))
+                                    .header("userId", Long.toString(data.getUserId()))
+                                    .header("requestId", UUID.randomUUID().toString())
+                                    .build();
+
+                            return chain.filter(exchange.mutate().request(newRequest.mutate().build()).build());
+                        }
+                        return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "没有获取到有效认证");
+                    } else {
+                        return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "token 已失效,请重新登录");
+                    }
+                } catch (IOException e) {
+                    log.error("apiResponse IOException:{}", e);
                     return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "没有获取到有效认证");
                 }
             }

@@ -1,5 +1,6 @@
 package net.commchina.platform.gateway.remote;
 
+import feign.Response;
 import net.commchina.platform.gateway.remote.http.req.OpenApiAuthReq;
 import net.commchina.platform.gateway.remote.http.resp.UserInfo;
 import net.commchina.platform.gateway.response.APIResponse;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 public interface AuthUserRemote {
 
     @GetMapping("/token/getUser")
-    APIResponse<UserInfo> getTokenPage(@RequestHeader(value = HttpHeaders.AUTHORIZATION) String authHeader);
+    Response getTokenPage(@RequestHeader(value = HttpHeaders.AUTHORIZATION) String authHeader);
 
     @PostMapping("/oauth/openapi/auth")
     APIResponse<UserInfo> auth(@RequestBody OpenApiAuthReq req);
