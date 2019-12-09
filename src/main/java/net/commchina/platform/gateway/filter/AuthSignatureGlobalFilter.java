@@ -59,7 +59,7 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
                 return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "用户未登陆");
             } else {
                 Response token = authUserRemote.getTokenPage(authorization);
-                log.info("status:{}", token.status());
+                log.debug("status:{}", token.status());
                 try {
                     if (token.status() == HttpStatus.OK.value()) {
 
@@ -80,6 +80,7 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
                         }
                         return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "没有获取到有效认证");
                     } else {
+                        log.warn("auth 异常");
                         return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "token 已失效,请重新登录");
                     }
                 } catch (IOException e) {
