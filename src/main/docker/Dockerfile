@@ -1,4 +1,4 @@
-FROM docker.io/frolvlad/alpine-oraclejdk8:slim
+FROM alpine-oraclejdk8:slim
 
 COPY gosu/gosu-amd64 /usr/bin/gosu
 RUN chmod +x /usr/bin/gosu
