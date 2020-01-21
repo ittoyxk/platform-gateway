@@ -22,5 +22,6 @@ public class OpenApiAuthReq {
     private String appId;
     private String timestamp;
     private String signature;
+    private String signType;
     private JSONObject reqData;
 }

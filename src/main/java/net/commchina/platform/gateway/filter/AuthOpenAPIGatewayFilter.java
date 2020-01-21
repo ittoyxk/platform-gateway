@@ -65,8 +65,9 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                 String timestamp = jsonObject.getString("timestamp");
                 String appId = jsonObject.getString("appId");
                 String signature = jsonObject.getString("signature");
+                String signType = jsonObject.getString("signType");
 
-                OpenApiAuthReq build = OpenApiAuthReq.builder().remoteIp(hostAddress).timestamp(timestamp).signature(signature).appId(appId).reqData(data).build();
+                OpenApiAuthReq build = OpenApiAuthReq.builder().remoteIp(hostAddress).timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(data).build();
                 log.info("build:{}", build.toString());
                 APIResponse<UserInfo> auth = authUserRemote.auth(build);
                 if (auth != null && auth.getCode() == 1) {
