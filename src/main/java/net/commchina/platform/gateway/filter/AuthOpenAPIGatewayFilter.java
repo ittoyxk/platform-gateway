@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import io.netty.buffer.ByteBufAllocator;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.commchina.platform.gateway.common.HttpUtils;
 import net.commchina.platform.gateway.remote.AuthUserRemote;
 import net.commchina.platform.gateway.remote.http.req.OpenApiAuthReq;
 import net.commchina.platform.gateway.remote.http.resp.UserInfo;
@@ -55,8 +54,8 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
             String path = request.getURI().getPath();
             //只拦截外部系统请求
             if (StrUtil.containsAnyIgnoreCase(path, "/openapi/")) {
-                String hostAddress = HttpUtils.getIpAddress(request);
-                log.info("hostAddress:{}", hostAddress);
+//                String hostAddress = HttpUtils.getIpAddress(request);
+//                log.info("hostAddress:{}", hostAddress);
 
                 String body = resolveBodyFromRequest(request);
                 JSONObject jsonObject = JSONObject.parseObject(body);
@@ -67,7 +66,7 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                 String signature = jsonObject.getString("signature");
                 String signType = jsonObject.getString("signType");
 
-                OpenApiAuthReq build = OpenApiAuthReq.builder().remoteIp(hostAddress).timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(data).build();
+                OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(data).build();
                 log.info("build:{}", build.toString());
                 APIResponse<UserInfo> auth = authUserRemote.auth(build);
                 if (auth != null && auth.getCode() == 1) {
