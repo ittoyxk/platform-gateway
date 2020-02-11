@@ -71,7 +71,7 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
                             ServerHttpRequest newRequest = request.mutate()
                                     .header("userName", data.getUserName())
                                     .header("companyId", Long.toString(data.getCompanyId()))
-                                    .header("enterpriseId", Long.toString(data.getEnterpriseId()))
+                                    //.header("enterpriseId", Long.toString(data.getEnterpriseId()))
                                     .header("userId", Long.toString(data.getUserId()))
                                     .header("requestId", UUID.randomUUID().toString())
                                     .build();
