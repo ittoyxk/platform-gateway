@@ -1,6 +1,7 @@
 package net.commchina.platform.gateway.filter;
 
 import cn.hutool.core.util.CharsetUtil;
+import cn.hutool.core.util.HexUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.symmetric.AES;
 import cn.hutool.http.HttpUtil;
@@ -32,7 +33,7 @@ public class PasswordDecoderFilter extends AbstractGatewayFilterFactory {
     private static String decryptAES(String data, String pass)
     {
         AES aes = new AES(pass.getBytes());
-        return aes.decryptStr(data);
+        return aes.decryptStr(HexUtil.decodeHexStr(data));
     }
 
     @Override
