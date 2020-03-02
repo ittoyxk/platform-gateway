@@ -9,6 +9,7 @@ import net.commchina.platform.gateway.remote.http.resp.UserInfo;
 import net.commchina.platform.gateway.response.APIResponse;
 import net.commchina.platform.gateway.response.ResponseEntity;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -54,6 +55,9 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
         //外部前端接口统一认证
         else if (StrUtil.containsAnyIgnoreCase(path, "/api/")) {
             String authorization = request.getHeaders().getFirst("Authorization");
+            if(StringUtils.isEmpty(authorization)){
+                authorization=request.getQueryParams().getFirst("token");
+            }
             log.debug("authorization:{}", authorization);
             if (authorization == null || authorization.isEmpty()) {
                 return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "用户未登陆");
