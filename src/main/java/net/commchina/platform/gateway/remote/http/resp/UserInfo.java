@@ -15,4 +15,6 @@ public class UserInfo {
     private Long companyId;
 
     private Long enterpriseId;
+    private Long deptId;
+    private Long groundId;
 }

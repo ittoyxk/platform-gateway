@@ -85,8 +85,10 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                             httpHeaders.putAll(super.getHeaders());
                             httpHeaders.setContentLength(bodyDataBuffer.readableByteCount());
                             httpHeaders.set("companyId", Long.toString(auth.getData().getCompanyId()));
-                           // httpHeaders.set("enterpriseId", Long.toString(auth.getData().getEnterpriseId()));
+                            httpHeaders.set("enterpriseId", Long.toString(auth.getData().getEnterpriseId()));
                             httpHeaders.set("userId", Long.toString(auth.getData().getUserId()));
+                            httpHeaders.set("deptId", Long.toString(auth.getData().getDeptId()));
+                            httpHeaders.set("groundId", Long.toString(auth.getData().getGroundId()));
                             httpHeaders.set("requestId", UUID.randomUUID().toString());
                             return httpHeaders;
                         }
