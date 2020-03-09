@@ -55,8 +55,8 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
         //外部前端接口统一认证
         else if (StrUtil.containsAnyIgnoreCase(path, "/api/")) {
             String authorization = request.getHeaders().getFirst("Authorization");
-            if(StringUtils.isEmpty(authorization)){
-                authorization=request.getQueryParams().getFirst("token");
+            if (StringUtils.isEmpty(authorization)) {
+                authorization = request.getQueryParams().getFirst("token");
             }
             log.debug("authorization:{}", authorization);
             if (authorization == null || authorization.isEmpty()) {
@@ -70,16 +70,16 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
                         String bodyStr = IOUtils.toString(token.body().asInputStream(), "UTF-8");
                         APIResponse apiResponse = JSONObject.toJavaObject(JSONObject.parseObject(bodyStr), APIResponse.class);
                         if (apiResponse.getCode() == 1) {
-                            UserInfo data = JSONObject.toJavaObject((JSONObject)apiResponse.getData(),UserInfo.class);
+                            UserInfo data = JSONObject.toJavaObject((JSONObject) apiResponse.getData(), UserInfo.class);
 
                             ServerHttpRequest newRequest = request.mutate()
                                     .header("userName", data.getUserName())
-                                    .header("companyId", Long.toString(data.getCompanyId()))
-                                    .header("enterpriseId", Long.toString(data.getEnterpriseId()))
-                                    .header("userId", Long.toString(data.getUserId()))
+                                    .header("companyId", data.getCompanyId() == null ? "-1" : Long.toString(data.getCompanyId()))
+                                    .header("enterpriseId", data.getEnterpriseId() == null ? "-1" : Long.toString(data.getEnterpriseId()))
+                                    .header("userId", data.getUserId() == null ? "-1" : Long.toString(data.getUserId()))
                                     .header("requestId", UUID.randomUUID().toString())
-                                    .header("deptId",Long.toString(data.getDeptId()))
-                                    .header("groundId",Long.toString(data.getGroundId()))
+                                    .header("deptId", data.getDeptId() == null ? "-1" : Long.toString(data.getDeptId()))
+                                    .header("groundId", data.getGroundId() == null ? "-1" : Long.toString(data.getGroundId()))
                                     .build();
 
                             return chain.filter(exchange.mutate().request(newRequest.mutate().build()).build());

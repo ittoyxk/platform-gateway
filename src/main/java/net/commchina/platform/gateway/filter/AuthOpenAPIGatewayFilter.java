@@ -84,11 +84,11 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                             HttpHeaders httpHeaders = new HttpHeaders();
                             httpHeaders.putAll(super.getHeaders());
                             httpHeaders.setContentLength(bodyDataBuffer.readableByteCount());
-                            httpHeaders.set("companyId", Long.toString(auth.getData().getCompanyId()));
-                            httpHeaders.set("enterpriseId", Long.toString(auth.getData().getEnterpriseId()));
-                            httpHeaders.set("userId", Long.toString(auth.getData().getUserId()));
-                            httpHeaders.set("deptId", Long.toString(auth.getData().getDeptId()));
-                            httpHeaders.set("groundId", Long.toString(auth.getData().getGroundId()));
+                            httpHeaders.set("companyId", auth.getData().getCompanyId() == null ? "-1" : Long.toString(auth.getData().getCompanyId()));
+                            httpHeaders.set("enterpriseId", auth.getData().getEnterpriseId() == null ? "-1" : Long.toString(auth.getData().getEnterpriseId()));
+                            httpHeaders.set("userId", auth.getData().getUserId() == null ? "-1" : Long.toString(auth.getData().getUserId()));
+                            httpHeaders.set("deptId", auth.getData().getDeptId() == null ? "-1" : Long.toString(auth.getData().getDeptId()));
+                            httpHeaders.set("groundId", auth.getData().getGroundId() == null ? "" : Long.toString(auth.getData().getGroundId()));
                             httpHeaders.set("requestId", UUID.randomUUID().toString());
                             return httpHeaders;
                         }
