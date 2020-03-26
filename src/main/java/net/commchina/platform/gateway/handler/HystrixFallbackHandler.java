@@ -17,6 +17,7 @@
 package net.commchina.platform.gateway.handler;
 
 import lombok.extern.slf4j.Slf4j;
+import net.commchina.platform.gateway.response.APIResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -38,13 +39,15 @@ import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.G
 @Slf4j
 @Component
 public class HystrixFallbackHandler implements HandlerFunction<ServerResponse> {
-	@Override
-	public Mono<ServerResponse> handle(ServerRequest serverRequest) {
-		Optional<Object> originalUris = serverRequest.attribute(GATEWAY_ORIGINAL_REQUEST_URL_ATTR);
+    @Override
+    public Mono<ServerResponse> handle(ServerRequest serverRequest)
+    {
+        Optional<Object> originalUris = serverRequest.attribute(GATEWAY_ORIGINAL_REQUEST_URL_ATTR);
 
-		originalUris.ifPresent(originalUri -> log.error("网关执行请求:{}失败,hystrix服务降级处理", originalUri));
+        originalUris.ifPresent(originalUri -> log.error("网关执行请求:{}失败,hystrix服务降级处理", originalUri));
 
-		return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-			.contentType(MediaType.TEXT_PLAIN).body(BodyInserters.fromObject("服务异常"));
-	}
+        APIResponse<Object> response = APIResponse.builder().code(-1).msg("服务异常").build();
+        return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON_UTF8).body(BodyInserters.fromObject(response));
+    }
 }
