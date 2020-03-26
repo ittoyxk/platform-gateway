@@ -20,7 +20,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.commchina.platform.gateway.handler.HystrixFallbackHandler;
 import net.commchina.platform.gateway.handler.ImageCodeHandler;
-import net.commchina.platform.gateway.handler.TestHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -39,7 +38,6 @@ import org.springframework.web.reactive.function.server.RouterFunctions;
 public class RouterFunctionConfiguration {
 	private final HystrixFallbackHandler hystrixFallbackHandler;
 	private final ImageCodeHandler imageCodeHandler;
-	private final TestHandler testHandler;
 
 	@Bean
 	public RouterFunction routerFunction() {
@@ -47,8 +45,7 @@ public class RouterFunctionConfiguration {
 			RequestPredicates.path("/fallback")
 				.and(RequestPredicates.accept(MediaType.APPLICATION_PROBLEM_JSON_UTF8)), hystrixFallbackHandler)
 			.andRoute(RequestPredicates.GET("/code")
-				.and(RequestPredicates.accept(MediaType.TEXT_PLAIN)), imageCodeHandler)
-				.andRoute(RequestPredicates.GET("/test").and(RequestPredicates.accept(MediaType.APPLICATION_PROBLEM_JSON_UTF8)), testHandler);
+				.and(RequestPredicates.accept(MediaType.TEXT_PLAIN)), imageCodeHandler);
 
 	}
 
