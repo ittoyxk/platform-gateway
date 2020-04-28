@@ -1,6 +1,5 @@
 package net.commchina.platform.gateway.remote.http.req;
 
-import com.alibaba.fastjson.JSONObject;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,5 +22,5 @@ public class OpenApiAuthReq {
     private String timestamp;
     private String signature;
     private String signType;
-    private JSONObject reqData;
+    private Object reqData;
 }

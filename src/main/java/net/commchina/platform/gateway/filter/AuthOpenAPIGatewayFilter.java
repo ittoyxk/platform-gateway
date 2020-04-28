@@ -60,7 +60,7 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                 String body = resolveBodyFromRequest(request);
                 JSONObject jsonObject = JSONObject.parseObject(body);
 
-                JSONObject data = jsonObject.getJSONObject("data");
+                Object data = jsonObject.get("data");
                 String timestamp = jsonObject.getString("timestamp");
                 String appId = jsonObject.getString("appId");
                 String signature = jsonObject.getString("signature");
@@ -70,7 +70,7 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                 //log.debug("build:{}", build.toString());
                 APIResponse<UserInfo> auth = authUserRemote.auth(build);
                 if (auth != null && auth.getCode() == 1) {
-                    DataBuffer bodyDataBuffer = stringBuffer(data.toJSONString());
+                    DataBuffer bodyDataBuffer = stringBuffer(JSONObject.toJSONString(data));
                     ServerHttpRequest newRequest = new ServerHttpRequestDecorator(request) {
                         @Override
                         public Flux<DataBuffer> getBody()
