@@ -1,139 +1,133 @@
 package net.commchina.platform.gateway.filter;
 
-import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
-import io.netty.buffer.ByteBufAllocator;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.commchina.platform.gateway.remote.AuthUserRemote;
 import net.commchina.platform.gateway.remote.http.req.OpenApiAuthReq;
 import net.commchina.platform.gateway.remote.http.resp.UserInfo;
 import net.commchina.platform.gateway.response.APIResponse;
-import net.commchina.platform.gateway.response.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.cloud.gateway.support.BodyInserterContext;
+import org.springframework.cloud.gateway.support.CachedBodyOutputMessage;
+import org.springframework.cloud.gateway.support.DefaultServerRequest;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.BodyInserter;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
  * @description: platform-gateway
  * @author: hengxiaokang
- * @time 2019/11/27 9:31
+ * @time 2020/4/28 18:03
  */
 @Slf4j
 @Component
-@AllArgsConstructor
 public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
 
     @Autowired
     private AuthUserRemote authUserRemote;
 
-    private final String pattern = "\\s*|\t|\r|\n";
 
     @Override
+    @SuppressWarnings("unchecked")
     public GatewayFilter apply(Object config)
     {
-        return ((exchange, chain) -> {
-            ServerHttpRequest request = exchange.getRequest();
-            ServerHttpResponse response = exchange.getResponse();
+        return new GatewayFilter() {
+            @Override
+            public Mono<Void> filter(ServerWebExchange exchange,
+                                     GatewayFilterChain chain)
+            {
+                ServerRequest serverRequest = new DefaultServerRequest(exchange);
+                HttpHeaders headers = new HttpHeaders();
+                headers.putAll(exchange.getRequest().getHeaders());
+                // mediaType
+                MediaType mediaType = exchange.getRequest().getHeaders().getContentType();
+                // read & modify body
+                Mono<String> modifiedBody = serverRequest.bodyToMono(String.class)
+                        .flatMap(body -> {
+                            if (MediaType.APPLICATION_JSON_UTF8.isCompatibleWith(mediaType)) {
+                                // origin body map
+                                JSONObject json = decodeBody(body);
 
-            String path = request.getURI().getPath();
-            //只拦截外部系统请求
-            if (StrUtil.containsAnyIgnoreCase(path, "/openapi/")) {
-//                String hostAddress = HttpUtils.getIpAddress(request);
-//                log.info("hostAddress:{}", hostAddress);
+                                Object data = json.get("data");
+                                String timestamp = json.getString("timestamp");
+                                String appId = json.getString("appId");
+                                String signature = json.getString("signature");
+                                String signType = json.getString("signType");
+                                OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(data).build();
+                                //log.debug("build:{}", build.toString());
+                                APIResponse<UserInfo> auth = authUserRemote.auth(build);
+                                headers.set("companyId", auth.getData().getCompanyId() == null ? "-1" : Long.toString(auth.getData().getCompanyId()));
+                                headers.set("enterpriseId", auth.getData().getEnterpriseId() == null ? "-1" : Long.toString(auth.getData().getEnterpriseId()));
+                                headers.set("userId", auth.getData().getUserId() == null ? "-1" : Long.toString(auth.getData().getUserId()));
+                                headers.set("deptId", auth.getData().getDeptId() == null ? "-1" : Long.toString(auth.getData().getDeptId()));
+                                headers.set("groundId", auth.getData().getGroundId() == null ? "" : Long.toString(auth.getData().getGroundId()));
+                                headers.set("requestId", UUID.randomUUID().toString());
+                                // new body map
 
-                String body = resolveBodyFromRequest(request);
-                JSONObject jsonObject = JSONObject.parseObject(body);
+                                return Mono.just(encodeBody(data));
+                            }
+                            return Mono.empty();
+                        });
 
-                Object data = jsonObject.get("data");
-                String timestamp = jsonObject.getString("timestamp");
-                String appId = jsonObject.getString("appId");
-                String signature = jsonObject.getString("signature");
-                String signType = jsonObject.getString("signType");
+                BodyInserter bodyInserter = BodyInserters.fromPublisher(modifiedBody, String.class);
 
-                OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(data).build();
-                //log.debug("build:{}", build.toString());
-                APIResponse<UserInfo> auth = authUserRemote.auth(build);
-                if (auth != null && auth.getCode() == 1) {
-                    DataBuffer bodyDataBuffer = stringBuffer(JSONObject.toJSONString(data));
-                    ServerHttpRequest newRequest = new ServerHttpRequestDecorator(request) {
-                        @Override
-                        public Flux<DataBuffer> getBody()
-                        {
-                            return Flux.just(bodyDataBuffer);
-                        }
 
-                        @Override
-                        public HttpHeaders getHeaders()
-                        {
-                            HttpHeaders httpHeaders = new HttpHeaders();
-                            httpHeaders.putAll(super.getHeaders());
-                            httpHeaders.setContentLength(bodyDataBuffer.readableByteCount());
-                            httpHeaders.set("companyId", auth.getData().getCompanyId() == null ? "-1" : Long.toString(auth.getData().getCompanyId()));
-                            httpHeaders.set("enterpriseId", auth.getData().getEnterpriseId() == null ? "-1" : Long.toString(auth.getData().getEnterpriseId()));
-                            httpHeaders.set("userId", auth.getData().getUserId() == null ? "-1" : Long.toString(auth.getData().getUserId()));
-                            httpHeaders.set("deptId", auth.getData().getDeptId() == null ? "-1" : Long.toString(auth.getData().getDeptId()));
-                            httpHeaders.set("groundId", auth.getData().getGroundId() == null ? "" : Long.toString(auth.getData().getGroundId()));
-                            httpHeaders.set("requestId", UUID.randomUUID().toString());
-                            return httpHeaders;
-                        }
-                    };
-                    return chain.filter(exchange.mutate().request(newRequest.mutate().build()).build());
-                } else {
-                    return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, auth.getMsg());
-                }
+                // the new content type will be computed by bodyInserter
+                // and then set in the request decorator
+                headers.remove(HttpHeaders.CONTENT_LENGTH);
+
+                CachedBodyOutputMessage outputMessage = new CachedBodyOutputMessage(exchange, headers);
+                return bodyInserter.insert(outputMessage, new BodyInserterContext())
+                        .then(Mono.defer(() -> {
+                            ServerHttpRequestDecorator decorator = new ServerHttpRequestDecorator(
+                                    exchange.getRequest()) {
+                                @Override
+                                public HttpHeaders getHeaders()
+                                {
+                                    long contentLength = headers.getContentLength();
+                                    HttpHeaders httpHeaders = new HttpHeaders();
+                                    httpHeaders.putAll(headers);
+                                    if (contentLength > 0) {
+                                        httpHeaders.setContentLength(contentLength);
+                                    } else {
+                                        httpHeaders.set(HttpHeaders.TRANSFER_ENCODING, "chunked");
+                                    }
+                                    return httpHeaders;
+                                }
+
+                                @Override
+                                public Flux<DataBuffer> getBody()
+                                {
+                                    return outputMessage.getBody();
+                                }
+                            };
+                            return chain.filter(exchange.mutate().request(decorator).build());
+                        }));
             }
-            return chain.filter(exchange);
-        });
+
+        };
     }
 
-    private String resolveBodyFromRequest(ServerHttpRequest serverHttpRequest)
+    private JSONObject decodeBody(String body)
     {
-        Flux<DataBuffer> body = serverHttpRequest.getBody();
-        StringBuilder sb = new StringBuilder();
-        body.subscribe(buffer -> {
-            byte[] bytes = new byte[buffer.readableByteCount()];
-            buffer.read(bytes);
-            DataBufferUtils.release(buffer);
-            String bodyString = new String(bytes, StandardCharsets.UTF_8);
-            sb.append(bodyString);
-        });
-        return formatStr(sb.toString());
+        return JSONObject.parseObject(body);
     }
 
-    /**
-     * 去掉空格,换行和制表符
-     *
-     * @param str
-     * @return
-     */
-    private String formatStr(String str)
+    private String encodeBody(Object json)
     {
-        if (str != null && str.length() > 0) {
-            return str.replaceAll(pattern, "");
-        }
-        return str;
-    }
-
-    private DataBuffer stringBuffer(String value)
-    {
-        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
-        NettyDataBufferFactory nettyDataBufferFactory = new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);
-        DataBuffer buffer = nettyDataBufferFactory.allocateBuffer(bytes.length);
-        buffer.write(bytes);
-        return buffer;
+        return JSONObject.toJSONString(json);
     }
 }
