@@ -26,8 +26,6 @@ import reactor.core.publisher.Flux;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @description: platform-gateway
@@ -42,7 +40,7 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
     @Autowired
     private AuthUserRemote authUserRemote;
 
-    private final Pattern pattern = Pattern.compile("\\s*|\t|\r|\n");
+    private final String pattern = "\\s*|\t|\r|\n";
 
     @Override
     public GatewayFilter apply(Object config)
@@ -126,8 +124,7 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
     private String formatStr(String str)
     {
         if (str != null && str.length() > 0) {
-            Matcher m = pattern.matcher(str);
-            return m.replaceAll("");
+            return str.replaceAll(pattern,"");
         }
         return str;
     }
