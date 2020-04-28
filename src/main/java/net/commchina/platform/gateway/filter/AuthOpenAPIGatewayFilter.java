@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,7 +24,6 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -102,17 +102,15 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
 
     private String resolveBodyFromRequest(ServerHttpRequest serverHttpRequest)
     {
-        //获取请求体
         Flux<DataBuffer> body = serverHttpRequest.getBody();
-
         StringBuilder sb = new StringBuilder();
         body.subscribe(buffer -> {
-            CharBuffer charBuffer = StandardCharsets.UTF_8.decode(buffer.asByteBuffer());
-            // 将响应信息转化为字符串
-            String responseStr = charBuffer.toString();
-            sb.append(responseStr);
+            byte[] bytes = new byte[buffer.readableByteCount()];
+            buffer.read(bytes);
+            DataBufferUtils.release(buffer);
+            String bodyString = new String(bytes, StandardCharsets.UTF_8);
+            sb.append(bodyString);
         });
-
         return formatStr(sb.toString());
     }
 
