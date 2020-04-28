@@ -1,5 +1,6 @@
 package net.commchina.platform.gateway.filter;
 
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import net.commchina.platform.gateway.remote.AuthUserRemote;
@@ -46,78 +47,81 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
     {
         return new GatewayFilter() {
             @Override
-            public Mono<Void> filter(ServerWebExchange exchange,
-                                     GatewayFilterChain chain)
+            public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain)
             {
-                ServerRequest serverRequest = new DefaultServerRequest(exchange);
-                HttpHeaders headers = new HttpHeaders();
-                headers.putAll(exchange.getRequest().getHeaders());
-                // mediaType
-                MediaType mediaType = exchange.getRequest().getHeaders().getContentType();
-                // read & modify body
-                Mono<String> modifiedBody = serverRequest.bodyToMono(String.class)
-                        .flatMap(body -> {
-                            if (MediaType.APPLICATION_JSON_UTF8.isCompatibleWith(mediaType)) {
-                                // origin body map
-                                JSONObject json = decodeBody(body);
+                String path = exchange.getRequest().getURI().getPath();
+                if (StrUtil.containsAnyIgnoreCase(path, "/openapi/")) {
+                    ServerRequest serverRequest = new DefaultServerRequest(exchange);
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.putAll(exchange.getRequest().getHeaders());
+                    // mediaType
+                    MediaType mediaType = exchange.getRequest().getHeaders().getContentType();
+                    // read & modify body
+                    Mono<String> modifiedBody = serverRequest.bodyToMono(String.class)
+                            .flatMap(body -> {
+                                if (MediaType.APPLICATION_JSON_UTF8.isCompatibleWith(mediaType)) {
+                                    // origin body map
+                                    JSONObject json = decodeBody(body);
 
-                                Object data = json.get("data");
-                                String timestamp = json.getString("timestamp");
-                                String appId = json.getString("appId");
-                                String signature = json.getString("signature");
-                                String signType = json.getString("signType");
-                                OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(data).build();
-                                //log.debug("build:{}", build.toString());
-                                APIResponse<UserInfo> auth = authUserRemote.auth(build);
-                                headers.set("companyId", auth.getData().getCompanyId() == null ? "-1" : Long.toString(auth.getData().getCompanyId()));
-                                headers.set("enterpriseId", auth.getData().getEnterpriseId() == null ? "-1" : Long.toString(auth.getData().getEnterpriseId()));
-                                headers.set("userId", auth.getData().getUserId() == null ? "-1" : Long.toString(auth.getData().getUserId()));
-                                headers.set("deptId", auth.getData().getDeptId() == null ? "-1" : Long.toString(auth.getData().getDeptId()));
-                                headers.set("groundId", auth.getData().getGroundId() == null ? "" : Long.toString(auth.getData().getGroundId()));
-                                headers.set("requestId", UUID.randomUUID().toString());
-                                // new body map
+                                    Object data = json.get("data");
+                                    String timestamp = json.getString("timestamp");
+                                    String appId = json.getString("appId");
+                                    String signature = json.getString("signature");
+                                    String signType = json.getString("signType");
+                                    OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(data).build();
+                                    //log.debug("build:{}", build.toString());
+                                    APIResponse<UserInfo> auth = authUserRemote.auth(build);
+                                    headers.set("companyId", auth.getData().getCompanyId() == null ? "-1" : Long.toString(auth.getData().getCompanyId()));
+                                    headers.set("enterpriseId", auth.getData().getEnterpriseId() == null ? "-1" : Long.toString(auth.getData().getEnterpriseId()));
+                                    headers.set("userId", auth.getData().getUserId() == null ? "-1" : Long.toString(auth.getData().getUserId()));
+                                    headers.set("deptId", auth.getData().getDeptId() == null ? "-1" : Long.toString(auth.getData().getDeptId()));
+                                    headers.set("groundId", auth.getData().getGroundId() == null ? "" : Long.toString(auth.getData().getGroundId()));
+                                    headers.set("requestId", UUID.randomUUID().toString());
+                                    // new body map
 
-                                return Mono.just(encodeBody(data));
-                            }
-                            return Mono.empty();
-                        });
+                                    return Mono.just(encodeBody(data));
+                                }
+                                return Mono.empty();
+                            });
 
-                BodyInserter bodyInserter = BodyInserters.fromPublisher(modifiedBody, String.class);
+                    BodyInserter bodyInserter = BodyInserters.fromPublisher(modifiedBody, String.class);
 
 
-                // the new content type will be computed by bodyInserter
-                // and then set in the request decorator
-                headers.remove(HttpHeaders.CONTENT_LENGTH);
+                    // the new content type will be computed by bodyInserter
+                    // and then set in the request decorator
+                    headers.remove(HttpHeaders.CONTENT_LENGTH);
 
-                CachedBodyOutputMessage outputMessage = new CachedBodyOutputMessage(exchange, headers);
-                return bodyInserter.insert(outputMessage, new BodyInserterContext())
-                        .then(Mono.defer(() -> {
-                            ServerHttpRequestDecorator decorator = new ServerHttpRequestDecorator(
-                                    exchange.getRequest()) {
-                                @Override
-                                public HttpHeaders getHeaders()
-                                {
-                                    long contentLength = headers.getContentLength();
-                                    HttpHeaders httpHeaders = new HttpHeaders();
-                                    httpHeaders.putAll(headers);
-                                    if (contentLength > 0) {
-                                        httpHeaders.setContentLength(contentLength);
-                                    } else {
-                                        httpHeaders.set(HttpHeaders.TRANSFER_ENCODING, "chunked");
+                    CachedBodyOutputMessage outputMessage = new CachedBodyOutputMessage(exchange, headers);
+                    return bodyInserter.insert(outputMessage, new BodyInserterContext())
+                            .then(Mono.defer(() -> {
+                                ServerHttpRequestDecorator decorator = new ServerHttpRequestDecorator(
+                                        exchange.getRequest()) {
+                                    @Override
+                                    public HttpHeaders getHeaders()
+                                    {
+                                        long contentLength = headers.getContentLength();
+                                        HttpHeaders httpHeaders = new HttpHeaders();
+                                        httpHeaders.putAll(headers);
+                                        if (contentLength > 0) {
+                                            httpHeaders.setContentLength(contentLength);
+                                        } else {
+                                            httpHeaders.set(HttpHeaders.TRANSFER_ENCODING, "chunked");
+                                        }
+                                        return httpHeaders;
                                     }
-                                    return httpHeaders;
-                                }
 
-                                @Override
-                                public Flux<DataBuffer> getBody()
-                                {
-                                    return outputMessage.getBody();
-                                }
-                            };
-                            return chain.filter(exchange.mutate().request(decorator).build());
-                        }));
+                                    @Override
+                                    public Flux<DataBuffer> getBody()
+                                    {
+                                        return outputMessage.getBody();
+                                    }
+                                };
+                                return chain.filter(exchange.mutate().request(decorator).build());
+                            }));
+                } else {
+                    return chain.filter(exchange);
+                }
             }
-
         };
     }
 
