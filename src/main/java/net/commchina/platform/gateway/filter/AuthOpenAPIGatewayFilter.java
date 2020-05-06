@@ -22,14 +22,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.stereotype.Component;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.net.URI;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -65,9 +64,9 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                     String timestamp = exchange.getRequest().getHeaders().getFirst("timestamp");
                     String signType = exchange.getRequest().getHeaders().getFirst("signType");
                     String signature = exchange.getRequest().getHeaders().getFirst("signature");
-                    String data = exchange.getRequest().getHeaders().getFirst("data");
+                    MultiValueMap<String, String> data = exchange.getRequest().getQueryParams();
 
-                    OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(data).build();
+                    OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(HttpUtil.toParams(data)).build();
                     APIResponse<UserInfo> auth = authUserRemote.auth(build);
                     if (auth.getCode() == 1) {
                         setAuthHeader(headers, auth);
@@ -87,17 +86,6 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                                 httpHeaders.set(HttpHeaders.TRANSFER_ENCODING, "chunked");
                             }
                             return httpHeaders;
-                        }
-
-                        @Override
-                        public URI getURI()
-                        {
-                            URI uri = exchange.getRequest().getURI();
-                            URI newUri = UriComponentsBuilder.fromUri(uri)
-                                    .replaceQuery(HttpUtil.toParams(exchange.getRequest().getQueryParams()))
-                                    .build(true)
-                                    .toUri();
-                            return newUri;
                         }
                     };
                     return chain.filter(exchange.mutate().request(decorator).build());
