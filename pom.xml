@@ -78,6 +78,12 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.hdrhistogram</groupId>
+                    <artifactId>HdrHistogram</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -92,10 +98,10 @@
             <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
         </dependency>
         <!--feign 依赖-->
-        <dependency>
+       <!-- <dependency>
             <groupId>io.github.openfeign</groupId>
             <artifactId>feign-okhttp</artifactId>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
@@ -153,45 +159,18 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>javax.servlet</groupId>
-                    <artifactId>javax.servlet-api</artifactId>
-                    <version>3.1.0</version>
-                </dependency>
-            </dependencies>
         </profile>
         <profile>
             <id>test</id>
             <properties>
                 <profile.active>test</profile.active>
             </properties>
-
-            <dependencies>
-                <!-- tomcat start -->
-                <dependency>
-                    <groupId>javax.servlet</groupId>
-                    <artifactId>javax.servlet-api</artifactId>
-                    <version>3.1.0</version>
-                </dependency>
-                <!-- tomcat end -->
-            </dependencies>
         </profile>
         <profile>
             <id>prod</id>
             <properties>
                 <profile.active>prod</profile.active>
             </properties>
-
-            <dependencies>
-                <!-- tomcat start -->
-                <dependency>
-                    <groupId>javax.servlet</groupId>
-                    <artifactId>javax.servlet-api</artifactId>
-                    <version>3.1.0</version>
-                </dependency>
-                <!-- tomcat end -->
-            </dependencies>
         </profile>
     </profiles>
 

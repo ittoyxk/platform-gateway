@@ -30,8 +30,8 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
 /**
- * @author lengleng
- * @date 2018/7/4
+ * @author: hengxiaokang
+ * @time 2019/11/20 15:14
  * 验证码处理
  */
 @Slf4j

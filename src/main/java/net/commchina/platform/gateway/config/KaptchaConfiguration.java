@@ -24,8 +24,9 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Properties;
 
 /**
- * @author lengleng
- * @date 2019/2/1
+ * @description: platform-gateway
+ * @author: hengxiaokang
+ * @time 2019/11/20 15:14
  */
 @Configuration
 public class KaptchaConfiguration {

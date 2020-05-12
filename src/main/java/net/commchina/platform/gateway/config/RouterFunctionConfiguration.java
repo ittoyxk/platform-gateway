@@ -28,8 +28,8 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 
 /**
- * @author lengleng
- * @date 2019/2/1
+ * @author: hengxiaokang
+ * @time 2019/11/20 15:14
  * 路由配置信息
  */
 @Slf4j

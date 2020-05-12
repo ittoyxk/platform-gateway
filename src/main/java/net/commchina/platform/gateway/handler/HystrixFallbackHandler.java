@@ -32,8 +32,8 @@ import java.util.Optional;
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR;
 
 /**
- * @author lengleng
- * @date 2019/2/1
+ * @author: hengxiaokang
+ * @time 2019/11/20 15:14
  * Hystrix 降级处理
  */
 @Slf4j
