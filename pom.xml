@@ -187,6 +187,8 @@
                 <includes>
                     <include>bootstrap.properties</include>
                     <include>logback.xml</include>
+                    <include>images/jigsaw/original/*.png</include>
+                    <include>images/jigsaw/slidingBlock/*.png</include>
                 </includes>
             </resource>
             <resource>

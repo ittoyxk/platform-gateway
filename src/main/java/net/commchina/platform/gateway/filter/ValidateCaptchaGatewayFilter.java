@@ -1,14 +1,15 @@
 package net.commchina.platform.gateway.filter;
 
 import cn.hutool.core.util.StrUtil;
-import lombok.AllArgsConstructor;
+import cn.hutool.crypto.symmetric.AES;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.commchina.platform.gateway.exception.ValidateCodeException;
+import net.commchina.platform.gateway.handler.captcha.CaptchaCacheService;
 import net.commchina.platform.gateway.response.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
@@ -20,10 +21,17 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@AllArgsConstructor
-public class ValidateCodeGatewayFilter extends AbstractGatewayFilterFactory {
+public class ValidateCaptchaGatewayFilter extends AbstractGatewayFilterFactory {
 
-    private final StringRedisTemplate redisTemplate;
+    private final CaptchaCacheService captchaCacheService;
+
+    @Value("${security.encode.key:1234567812345678}")
+    private String aesKey;
+    private static final String REDIS_SECOND_CAPTCHA_KEY = "gateway:captcha:running:captcha:second:";
+
+    public ValidateCaptchaGatewayFilter(CaptchaCacheService captchaCacheService){
+        this.captchaCacheService=captchaCacheService;
+    }
 
     @Override
     public GatewayFilter apply(Object config)
@@ -61,40 +69,36 @@ public class ValidateCodeGatewayFilter extends AbstractGatewayFilterFactory {
     @SneakyThrows
     private void checkCode(ServerHttpRequest request)
     {
-        String code = request.getQueryParams().getFirst("code");
+        String token = request.getQueryParams().getFirst("token");
 
-        if (StrUtil.isBlank(code)) {
-            throw new ValidateCodeException("验证码不能为空");
+        if (StrUtil.isBlank(token)) {
+            throw new ValidateCodeException("验证坐标token不能为空");
         }
 
-        String randomStr = request.getQueryParams().getFirst("randomStr");
-        if (StrUtil.isBlank(randomStr)) {
-            randomStr = request.getQueryParams().getFirst("mobile");
+        String pointJson = request.getQueryParams().getFirst("pointJson");
+        if (StrUtil.isBlank(pointJson)) {
+            throw new ValidateCodeException("验证坐标不能为空");
         }
 
-        String key = "auth:core:imagecode:" + randomStr;
-        if (!redisTemplate.hasKey(key)) {
+        //取坐标信息
+        String codeKey = REDIS_SECOND_CAPTCHA_KEY + token;
+        if (!captchaCacheService.exists(codeKey)) {
             throw new ValidateCodeException("验证码已失效,请重新获取");
         }
 
-        Object codeObj = redisTemplate.opsForValue().get(key);
-
-        if (codeObj == null) {
-            throw new ValidateCodeException("验证码已失效,请重新获取");
+        try {
+            AES aes = new AES(aesKey.getBytes());
+            pointJson = aes.decryptStr(pointJson);
+        } catch (Exception e) {
+            log.error("验证码坐标解析失败:{}",e);
+            throw new ValidateCodeException("验证码坐标解析失败");
         }
-
-        String saveCode = codeObj.toString();
-        if (StrUtil.isBlank(saveCode)) {
-            redisTemplate.delete(key);
-            throw new ValidateCodeException("验证码已失效,请重新获取");
+        String redisData = captchaCacheService.get(codeKey);
+        //二次校验取值后，即刻失效
+        captchaCacheService.delete(codeKey);
+        if (!pointJson.equals(redisData)) {
+            throw new ValidateCodeException("验证失败");
         }
-
-        if (!StrUtil.equals(saveCode, code)) {
-            redisTemplate.delete(key);
-            throw new ValidateCodeException("验证码不正确");
-        }
-
-        redisTemplate.delete(key);
     }
 
 }

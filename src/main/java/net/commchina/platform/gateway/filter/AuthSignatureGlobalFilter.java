@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import feign.Response;
 import lombok.extern.slf4j.Slf4j;
+import net.commchina.platform.gateway.common.HttpUtils;
 import net.commchina.platform.gateway.remote.AuthUserRemote;
 import net.commchina.platform.gateway.remote.http.resp.UserInfo;
 import net.commchina.platform.gateway.response.APIResponse;
@@ -81,6 +82,7 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
                                     .header("groundId", data.getGroundId() == null ? "-1" : Long.toString(data.getGroundId()))
                                     .build();
 
+                            log.debug("request IP:{}-PATH:{}-USERID:{}-USERNAME:{}-QUERYPARAMS:{}-BODY:{}", HttpUtils.getIpAddress(request),path,data.getUserId(),data.getUserName(),request.getQueryParams());
                             return chain.filter(exchange.mutate().request(newRequest.mutate().build()).build());
                         }
                         return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "没有获取到有效认证");
