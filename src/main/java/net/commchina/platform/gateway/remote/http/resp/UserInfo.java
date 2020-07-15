@@ -17,4 +17,5 @@ public class UserInfo {
     private Long enterpriseId;
     private Long deptId;
     private Long groundId;
+    private String clientId;
 }

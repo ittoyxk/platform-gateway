@@ -80,6 +80,7 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
                                     .header("requestId", UUID.randomUUID().toString())
                                     .header("deptId", data.getDeptId() == null ? "-1" : Long.toString(data.getDeptId()))
                                     .header("groundId", data.getGroundId() == null ? "-1" : Long.toString(data.getGroundId()))
+                                    .header("clientId", data.getClientId())
                                     .build();
 
                             log.debug("request IP:{}-PATH:{}-USERID:{}-USERNAME:{}-QUERYPARAMS:{}-BODY:{}", HttpUtils.getIpAddress(request),path,data.getUserId(),data.getUserName(),request.getQueryParams());
