@@ -44,16 +44,8 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
 
         String path = request.getURI().getPath();
 
-        //获取token
-        if (StrUtil.containsAnyIgnoreCase(path, "/oauth/token")) {
-            return chain.filter(exchange);
-        }
-        //后端服务RPC使用,不暴露外部
-        else if (StrUtil.containsAnyIgnoreCase(path, "/job/")) {
-            return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "没有权限访问");
-        }
         //外部前端接口统一认证
-        else if (StrUtil.containsAnyIgnoreCase(path, "/api/")) {
+        if (StrUtil.containsAnyIgnoreCase(path, "/api/")) {
             String authorization = request.getHeaders().getFirst("Authorization");
             if (StringUtils.isEmpty(authorization)) {
                 authorization = request.getQueryParams().getFirst("token");
@@ -83,7 +75,7 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
                                     .header("clientId", data.getClientId())
                                     .build();
 
-                            log.debug("request IP:{}-PATH:{}-USERID:{}-USERNAME:{}-QUERYPARAMS:{}-BODY:{}", HttpUtils.getIpAddress(request),path,data.getUserId(),data.getUserName(),request.getQueryParams());
+                            log.debug("request IP:{}-PATH:{}-USERID:{}-USERNAME:{}-QUERYPARAMS:{}-BODY:{}", HttpUtils.getIpAddress(request), path, data.getUserId(), data.getUserName(), request.getQueryParams());
                             return chain.filter(exchange.mutate().request(newRequest.mutate().build()).build());
                         }
                         return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "没有获取到有效认证");
@@ -96,6 +88,9 @@ public class AuthSignatureGlobalFilter implements GlobalFilter, Ordered {
                     return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "没有获取到有效认证");
                 }
             }
+        }//后端服务RPC使用,不暴露外部
+        else if (StrUtil.containsAnyIgnoreCase(path, "/job/")) {
+            return ResponseEntity.errorResult(response, HttpStatus.UNAUTHORIZED, "没有权限访问");
         }
         return chain.filter(exchange);
     }
