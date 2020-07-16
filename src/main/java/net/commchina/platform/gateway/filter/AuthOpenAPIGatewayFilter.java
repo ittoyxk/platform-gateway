@@ -3,7 +3,6 @@ package net.commchina.platform.gateway.filter;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
 import net.commchina.platform.gateway.remote.AuthUserRemote;
 import net.commchina.platform.gateway.remote.http.req.OpenApiAuthReq;
@@ -11,14 +10,12 @@ import net.commchina.platform.gateway.remote.http.resp.UserInfo;
 import net.commchina.platform.gateway.response.APIResponse;
 import net.commchina.platform.gateway.response.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.cloud.gateway.support.BodyInserterContext;
 import org.springframework.cloud.gateway.support.CachedBodyOutputMessage;
 import org.springframework.cloud.gateway.support.DefaultServerRequest;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -34,7 +31,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @description: platform-gateway
@@ -47,11 +43,6 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
 
     @Autowired
     private AuthUserRemote authUserRemote;
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    @Value("${gateway.auth.cache:false}")
-    private boolean authCache;
 
     @Override
     @SuppressWarnings("unchecked")
@@ -75,7 +66,7 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                     MultiValueMap<String, String> data = exchange.getRequest().getQueryParams();
 
                     OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(HttpUtil.toParams(data)).build();
-                    APIResponse<UserInfo> auth = getUserInfo(build);
+                    APIResponse<UserInfo> auth = authUserRemote.auth(build);
                     if (auth.getCode() == 1) {
                         setAuthHeader(headers, auth);
                     } else {
@@ -113,7 +104,7 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                                     String signType = json.getString("signType");
 
                                     OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(data).build();
-                                    APIResponse<UserInfo> auth = getUserInfo(build);
+                                    APIResponse<UserInfo> auth = authUserRemote.auth(build);
                                     if (auth.getCode() == 1) {
                                         setAuthHeader(headers, auth);
                                     } else {
@@ -170,27 +161,6 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                 return chain.filter(exchange);
             }
         };
-    }
-
-    private APIResponse<UserInfo> getUserInfo(OpenApiAuthReq build)
-    {
-        if (authCache) {
-            String appId = build.getAppId();
-            String cache = redisTemplate.opsForValue().get("auth:core:openapi:userinfo:" + appId);
-            if (Strings.isNullOrEmpty(cache)) {
-                log.debug("auth init:{}", build.toString());
-                APIResponse<UserInfo> auth = authUserRemote.auth(build);
-                if (auth != null && auth.getData() != null) {
-                    UserInfo data = auth.getData();
-                    redisTemplate.opsForValue().set("auth:core:openapi:userinfo:" + appId, JSONObject.toJSONString(data),1800, TimeUnit.SECONDS);
-                }
-                return auth;
-            } else {
-                UserInfo userInfo = JSONObject.toJavaObject(JSONObject.parseObject(cache), UserInfo.class);
-                return APIResponse.success(userInfo);
-            }
-        }
-        return authUserRemote.auth(build);
     }
 
     private void setAuthHeader(HttpHeaders headers, APIResponse<UserInfo> auth)
