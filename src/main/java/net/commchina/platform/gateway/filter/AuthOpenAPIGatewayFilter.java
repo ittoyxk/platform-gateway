@@ -3,6 +3,7 @@ package net.commchina.platform.gateway.filter;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSONObject;
+import com.github.benmanes.caffeine.cache.Cache;
 import lombok.extern.slf4j.Slf4j;
 import net.commchina.platform.gateway.remote.AuthUserRemote;
 import net.commchina.platform.gateway.remote.http.req.OpenApiAuthReq;
@@ -44,6 +45,9 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
     @Autowired
     private AuthUserRemote authUserRemote;
 
+    @Autowired
+    private Cache<String, Object> cache;
+
     @Override
     @SuppressWarnings("unchecked")
     public GatewayFilter apply(Object config)
@@ -66,7 +70,7 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                     MultiValueMap<String, String> data = exchange.getRequest().getQueryParams();
 
                     OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(HttpUtil.toParams(data)).build();
-                    APIResponse<UserInfo> auth = authUserRemote.auth(build);
+                    APIResponse<UserInfo> auth = getUserInfo(build);
                     if (auth.getCode() == 1) {
                         setAuthHeader(headers, auth);
                     } else {
@@ -104,7 +108,7 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                                     String signType = json.getString("signType");
 
                                     OpenApiAuthReq build = OpenApiAuthReq.builder().timestamp(timestamp).signType(signType).signature(signature).appId(appId).reqData(data).build();
-                                    APIResponse<UserInfo> auth = authUserRemote.auth(build);
+                                    APIResponse<UserInfo> auth = getUserInfo(build);
                                     if (auth.getCode() == 1) {
                                         setAuthHeader(headers, auth);
                                     } else {
@@ -161,6 +165,11 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                 return chain.filter(exchange);
             }
         };
+    }
+
+    private APIResponse<UserInfo> getUserInfo(OpenApiAuthReq build)
+    {
+       return (APIResponse<UserInfo> ) cache.get(build.getAppId(),key->authUserRemote.auth(build));
     }
 
     private void setAuthHeader(HttpHeaders headers, APIResponse<UserInfo> auth)
