@@ -9,8 +9,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.codec.ServerCodecConfigurer;
-import org.springframework.http.codec.support.DefaultServerCodecConfigurer;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.cors.reactive.CorsUtils;
@@ -59,11 +57,11 @@ public class CorsConfig {
     }
 
 
-    @Bean
+/*    @Bean
     public ServerCodecConfigurer serverCodecConfigurer()
     {
         return new DefaultServerCodecConfigurer();
-    }
+    }*/
 
     /**
      * 如果使用了注册中心（如：Eureka），进行控制则需要增加如下配置

@@ -13,9 +13,8 @@ import net.commchina.platform.gateway.response.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.cloud.gateway.filter.factory.rewrite.CachedBodyOutputMessage;
 import org.springframework.cloud.gateway.support.BodyInserterContext;
-import org.springframework.cloud.gateway.support.CachedBodyOutputMessage;
-import org.springframework.cloud.gateway.support.DefaultServerRequest;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -26,6 +25,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.server.HandlerStrategies;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -93,11 +93,12 @@ public class AuthOpenAPIGatewayFilter extends AbstractGatewayFilterFactory {
                     };
                     return chain.filter(exchange.mutate().request(decorator).build());
                 } else {
-                    ServerRequest serverRequest = new DefaultServerRequest(exchange);
+
+                    ServerRequest serverRequest = ServerRequest.create(exchange, HandlerStrategies.withDefaults().messageReaders());
                     // read & modify body
                     Mono<String> modifiedBody = serverRequest.bodyToMono(String.class)
                             .flatMap(body -> {
-                                if (MediaType.APPLICATION_JSON_UTF8.isCompatibleWith(mediaType)) {
+                                if (MediaType.APPLICATION_JSON.isCompatibleWith(mediaType)) {
                                     // origin body map
                                     JSONObject json = decodeBody(body);
 
