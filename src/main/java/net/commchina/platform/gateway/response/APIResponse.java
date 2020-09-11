@@ -3,6 +3,7 @@ package net.commchina.platform.gateway.response;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
@@ -14,6 +15,7 @@ import lombok.experimental.Accessors;
 @Builder
 @Accessors(chain = true)
 @AllArgsConstructor
+@NoArgsConstructor
 public class APIResponse<T> {
 
     private int code;

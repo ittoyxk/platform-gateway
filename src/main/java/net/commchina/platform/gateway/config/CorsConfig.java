@@ -1,11 +1,6 @@
 package net.commchina.platform.gateway.config;
 
-import org.springframework.cloud.client.discovery.DiscoveryClient;
-import org.springframework.cloud.gateway.discovery.DiscoveryClientRouteDefinitionLocator;
-import org.springframework.cloud.gateway.discovery.DiscoveryLocatorProperties;
-import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -23,7 +18,7 @@ import reactor.core.publisher.Mono;
  * @time 2019/11/20 15:14
  */
 
-@Configuration
+//@Configuration
 public class CorsConfig {
 
     private static final String MAX_AGE = "18000L";
@@ -66,9 +61,9 @@ public class CorsConfig {
     /**
      * 如果使用了注册中心（如：Eureka），进行控制则需要增加如下配置
      */
-    @Bean
+   /* @Bean
     public RouteDefinitionLocator discoveryClientRouteDefinitionLocator(DiscoveryClient discoveryClient, DiscoveryLocatorProperties properties)
     {
         return new DiscoveryClientRouteDefinitionLocator(discoveryClient, properties);
-    }
+    }*/
 }
