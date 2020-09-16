@@ -21,4 +21,4 @@ else
     adduser -D -H -u $DUID -G shield shield
 fi
 
-exec /usr/bin/gosu $DUID:$DGID java $JAVA_OPTS -jar /@project.build.finalName@.jar $SPRING_OPTS
+exec /usr/bin/gosu $DUID:$DGID java $JAVA_OPTS org.springframework.boot.loader.JarLauncher $SPRING_OPTS

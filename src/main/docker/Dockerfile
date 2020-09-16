@@ -1,11 +1,23 @@
+FROM alpine-oraclejdk8:slim as builder
+
+WORKDIR application
+
+COPY platform-gateway.jar platform-gateway.jar
+RUN java -Djarmode=layertools -jar platform-gateway.jar extract
+
 FROM alpine-oraclejdk8:slim
 
 COPY gosu/gosu-amd64 /usr/bin/gosu
 RUN chmod +x /usr/bin/gosu
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY entrypoint.sh /application/entrypoint.sh
+RUN chmod +x /application/entrypoint.sh
 
-COPY @project.build.finalName@.jar @project.build.finalName@.jar
+WORKDIR application
 
-ENTRYPOINT ["/entrypoint.sh"]
+COPY --from=builder application/dependencies/ /application
+COPY --from=builder application/spring-boot-loader/ /application
+COPY --from=builder application/snapshot-dependencies/ /application
+COPY --from=builder application/application/ /application
+
+ENTRYPOINT ["/application/entrypoint.sh"]
