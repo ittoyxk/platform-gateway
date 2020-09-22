@@ -60,8 +60,8 @@ public class CaptchaVerifyHandlerImpl implements CaptchaVerifyHandler {
     {
         return ServerResponse
                 .status(HttpStatus.OK)
-                .contentType(MediaType.APPLICATION_JSON_UTF8)
-                .body(BodyInserters.fromObject(check(serverRequest)));
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(check(serverRequest)));
     }
 
     public APIResponse check(ServerRequest serverRequest)

@@ -5,13 +5,11 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.util.Base64Utils;
 import org.springframework.util.FileCopyUtils;
-import sun.misc.BASE64Decoder;
-import sun.misc.BASE64Encoder;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
-import java.util.Arrays;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,25 +48,6 @@ public class ImageUtils {
     }
 
     /**
-     * 图片转base64 字符串
-     *
-     * @param templateImage
-     * @return
-     */
-    public static String getImageToBase64Str(BufferedImage templateImage)
-    {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try {
-            ImageIO.write(templateImage, "png", baos);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        byte[] bytes = baos.toByteArray();
-        BASE64Encoder encoder = new BASE64Encoder();
-        return encoder.encodeBuffer(bytes).trim();
-    }
-
-    /**
      * base64 字符串转图片
      *
      * @param base64String
@@ -77,8 +56,7 @@ public class ImageUtils {
     public static BufferedImage getBase64StrToImage(String base64String)
     {
         try {
-            BASE64Decoder base64Decoder = new BASE64Decoder();
-            byte[] bytes = base64Decoder.decodeBuffer(base64String);
+            byte[] bytes = Base64Utils.decodeFromString(base64String);
             ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
             return ImageIO.read(inputStream);
         } catch (IOException e) {
@@ -103,26 +81,6 @@ public class ImageUtils {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return imgMap;
-    }
-
-    public static Map<String, String> getImagesFile(String path)
-    {
-        Map<String, String> imgMap = new HashMap<>();
-        File file = new File(path);
-        File[] files = file.listFiles();
-        Arrays.stream(files).forEach(item -> {
-            try {
-                FileInputStream fileInputStream = new FileInputStream(item);
-                byte[] bytes = FileCopyUtils.copyToByteArray(fileInputStream);
-                String string = Base64Utils.encodeToString(bytes);
-                imgMap.put(item.getName(), string);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
         return imgMap;
     }
 

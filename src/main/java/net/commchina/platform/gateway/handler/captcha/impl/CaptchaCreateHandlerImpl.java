@@ -15,11 +15,11 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Base64Utils;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
-import sun.misc.BASE64Encoder;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -64,8 +64,8 @@ public class CaptchaCreateHandlerImpl implements CaptchaCreateHandler {
     {
         return ServerResponse
                 .status(HttpStatus.OK)
-                .contentType(MediaType.APPLICATION_JSON_UTF8)
-                .body(BodyInserters.fromObject(get(serverRequest)));
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(get(serverRequest)));
     }
 
     public APIResponse get(ServerRequest serverRequest)
@@ -136,10 +136,9 @@ public class CaptchaCreateHandlerImpl implements CaptchaCreateHandler {
 
             // 源图生成遮罩
             byte[] oriCopyImages = DealOriPictureByTemplate(originalImage, jigsawImage, x, 0);
-            BASE64Encoder encoder = new BASE64Encoder();
-            dataVO.setOriginalImageBase64(encoder.encode(oriCopyImages).replaceAll("\r|\n", ""));
+            dataVO.setOriginalImageBase64(Base64Utils.encodeToString(oriCopyImages).replaceAll("\r|\n", ""));
             //point信息不传到前端，只做后端check校验
-            dataVO.setJigsawImageBase64(encoder.encode(jigsawImages).replaceAll("\r|\n", ""));
+            dataVO.setJigsawImageBase64(Base64Utils.encodeToString(jigsawImages).replaceAll("\r|\n", ""));
             dataVO.setToken(RandomUtils.getUUID());
 
             //将坐标信息存入redis中
