@@ -1,0 +1,99 @@
+server:
+  shutdown: graceful
+spring:
+  application:
+    name: platform-gateway
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 2000
+        response-timeout: 10000
+      locator:
+        enabled: true
+      routes:
+        # 认证中心
+        - id: auth-core
+          uri: lb://auth-core
+          predicates:
+            - Path=/auth/**
+          filters:
+            # 验证码处理
+            - ValidateCodeGatewayFilter
+            # 前端密码解密
+            - PasswordDecoderFilter
+        # CRM
+        - id: crm-core
+          uri: lb://crm-core
+          predicates:
+            - Path=/crm/**
+          filters:
+            # 认证过滤器
+            - AuthOpenAPIGatewayFilter
+        # File
+        - id: file-core
+          uri: lb://file-core
+          predicates:
+            - Path=/file/**
+
+        # risk
+        - id: risk-core
+          uri: lb://risk-core
+          predicates:
+            - Path=/risk/**
+          filters:
+            # 认证过滤器
+            - AuthOpenAPIGatewayFilter
+
+        # smart-quality
+        - id: smart-quality
+          uri: lb://smart-quality
+          predicates:
+            - Path=/smart-quality/**
+
+        # smart-quality
+        - id: quality
+          uri: lb://smart-quality
+          predicates:
+            - Path=/quality/**
+          filters:
+            # 认证过滤器
+            - AuthOpenAPIGatewayFilter
+
+        - id: call-number
+          uri: lb://call-number
+          predicates:
+            - Path=/call-number/**
+
+        - id: shield-cdr
+          uri: lb://shield-cdr
+          predicates:
+            - Path=/shield/**
+
+        - id: msg-core
+          uri: lb://msg-core
+          predicates:
+            - Path=/msg/**
+
+        - id: analysis-core
+          uri: lb://analysis-core
+          predicates:
+            - Path=/analysis/**
+
+# feign 配置
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 2000
+        readTimeout: 10000
+
+security:
+  encode:
+    key: AESIOSSAABCDEFIF
+
+auth:
+  core:
+    imagecode:
+      timeout: 300
