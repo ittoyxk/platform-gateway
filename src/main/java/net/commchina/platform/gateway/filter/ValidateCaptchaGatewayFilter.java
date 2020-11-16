@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.symmetric.AES;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import net.commchina.platform.gateway.common.HttpUtils;
 import net.commchina.platform.gateway.exception.ValidateCodeException;
 import net.commchina.platform.gateway.handler.captcha.CaptchaCacheService;
 import net.commchina.platform.gateway.response.ResponseEntity;
@@ -13,6 +14,8 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * @author: hengxiaokang
@@ -29,8 +32,12 @@ public class ValidateCaptchaGatewayFilter extends AbstractGatewayFilterFactory {
     private String aesKey;
     private static final String REDIS_SECOND_CAPTCHA_KEY = "gateway:captcha:running:captcha:second:";
 
-    public ValidateCaptchaGatewayFilter(CaptchaCacheService captchaCacheService){
-        this.captchaCacheService=captchaCacheService;
+    @Value("${client.white.list}")
+    private List<String> clientIdWhiteList;
+
+    public ValidateCaptchaGatewayFilter(CaptchaCacheService captchaCacheService)
+    {
+        this.captchaCacheService = captchaCacheService;
     }
 
     @Override
@@ -47,6 +54,12 @@ public class ValidateCaptchaGatewayFilter extends AbstractGatewayFilterFactory {
             // 刷新token，直接向下执行
             String grantType = request.getQueryParams().getFirst("grant_type");
             if (StrUtil.equals("refresh_token", grantType)) {
+                return chain.filter(exchange);
+            }
+
+            String clientId = HttpUtils.getClientId(request);
+            log.info("clientId:{}", clientId);
+            if (clientId != null && clientIdWhiteList.contains(clientId)) {
                 return chain.filter(exchange);
             }
 
@@ -90,7 +103,7 @@ public class ValidateCaptchaGatewayFilter extends AbstractGatewayFilterFactory {
             AES aes = new AES(aesKey.getBytes());
             pointJson = aes.decryptStr(pointJson);
         } catch (Exception e) {
-            log.error("验证码坐标解析失败:{}",e);
+            log.error("验证码坐标解析失败:{}", e);
             throw new ValidateCodeException("验证码坐标解析失败");
         }
         String redisData = captchaCacheService.get(codeKey);

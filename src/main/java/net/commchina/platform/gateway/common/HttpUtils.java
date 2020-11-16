@@ -1,7 +1,9 @@
 package net.commchina.platform.gateway.common;
 
+import com.google.common.base.Strings;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.util.Base64Utils;
 
 /**
  * @description: platform-gateway
@@ -39,5 +41,21 @@ public class HttpUtils {
             ip = request.getRemoteAddress().getAddress().getHostAddress();
         }
         return ip;
+    }
+
+
+    public static String getClientId(ServerHttpRequest request){
+        String authorization = request.getHeaders().getFirst("Authorization");
+        if(!Strings.isNullOrEmpty(authorization)){
+            String basic_ = authorization.replace("Basic ", "");
+            if(!Strings.isNullOrEmpty(basic_)){
+                byte[] bytes = Base64Utils.decodeFromString(basic_);
+                String client = new String(bytes);
+                String clientId = client.split(":")[0];
+
+                return clientId;
+            }
+        }
+        return null;
     }
 }
