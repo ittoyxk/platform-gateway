@@ -9,6 +9,7 @@ import net.commchina.platform.gateway.exception.ValidateCodeException;
 import net.commchina.platform.gateway.handler.captcha.CaptchaCacheService;
 import net.commchina.platform.gateway.response.ResponseEntity;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@ import java.util.List;
  */
 @Slf4j
 @Component
+@RefreshScope
 public class ValidateCaptchaGatewayFilter extends AbstractGatewayFilterFactory {
 
     private final CaptchaCacheService captchaCacheService;

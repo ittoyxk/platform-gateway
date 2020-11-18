@@ -8,6 +8,7 @@ import net.commchina.platform.gateway.common.HttpUtils;
 import net.commchina.platform.gateway.exception.ValidateCodeException;
 import net.commchina.platform.gateway.response.ResponseEntity;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -24,6 +25,7 @@ import java.util.List;
  */
 @Slf4j
 @Component
+@RefreshScope
 @AllArgsConstructor
 public class ValidateCodeGatewayFilter extends AbstractGatewayFilterFactory {
 
