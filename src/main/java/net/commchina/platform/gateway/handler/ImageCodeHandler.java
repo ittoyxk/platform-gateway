@@ -1,6 +1,7 @@
 package net.commchina.platform.gateway.handler;
 
-import com.google.code.kaptcha.Producer;
+import cn.hutool.captcha.CaptchaUtil;
+import cn.hutool.captcha.LineCaptcha;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -30,15 +31,13 @@ import java.util.concurrent.TimeUnit;
 @RefreshScope
 @Component
 public class ImageCodeHandler implements HandlerFunction<ServerResponse> {
-    private final Producer producer;
     private final StringRedisTemplate redisTemplate;
 
     @Value("${auth.core.imagecode.timeout:60}")
     private Long timeOut;
 
 
-    public ImageCodeHandler(final Producer producer, final StringRedisTemplate redisTemplate) {
-        this.producer = producer;
+    public ImageCodeHandler( final StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
@@ -46,8 +45,9 @@ public class ImageCodeHandler implements HandlerFunction<ServerResponse> {
     public Mono<ServerResponse> handle(ServerRequest serverRequest)
     {
         //生成验证码
-        String text = producer.createText();
-        BufferedImage image = producer.createImage(text);
+        LineCaptcha shearCaptcha = CaptchaUtil.createLineCaptcha(100, 40, 4, 10);
+        String text = shearCaptcha.getCode();
+        BufferedImage image = shearCaptcha.getImage();
 
         //保存验证码信息
         String randomStr = serverRequest.queryParam("randomStr").get();
